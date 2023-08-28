@@ -1,0 +1,63 @@
+<html>
+ <head>
+  <style>
+body {
+  margin: 5%;
+  background-color: #000;
+}
+
+table {
+  width:100%;
+  height:100%;
+ table-layout: fixed;
+}
+
+td {
+  background-color: #444;
+  color: #fff;
+  border: 2px solid white;
+  border-radius: 5px;  
+  font-size: 5vw;
+  margin: 5px;
+  text-align:center;
+  cursor: pointer;
+  user-select: none;
+}
+  </style>    
+ </head>
+ <body>
+  <script>
+
+function changeHIDKey(keyCode) {
+    let newCode=
+    `
+    var int = require("ble_hid_combo");
+    NRF.setServices(undefined, { hid : int.report });
+
+    function btnPressed() {\n \
+       int.keyDown(${keyCode}); \n\
+    };\
+
+    function btnReleased(){
+       int.keyUp(int.KEY.ALL);
+    }
+
+    // trigger btnPressed whenever the button is pressed
+    setWatch(btnPressed, BTN, {edge:"rising",repeat:true,debounce:50});
+    setWatch(btnReleased, BTN, {edge:"falling",repeat:true,debounce:50});
+    `
+    console.log(`sending new code: ${newCode}`);
+    Puck.write(newCode);
+    console.log("wrote new code");
+}
+
+  </script>
+  <script src="https://www.puck-js.com/puck.js"></script>
+  <table>
+    <tr>
+     <td onclick="changeHIDKey(44)">SPACE</td>
+     <td onclick="changeHIDKey(4)">Key A</td>
+    </tr>
+  </table>
+ </body>
+</html>
