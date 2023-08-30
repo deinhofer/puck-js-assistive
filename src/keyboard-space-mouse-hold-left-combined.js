@@ -9,7 +9,7 @@ let changeMode=0;
 Puck.accelOn(1.6); //for 1.6Hz low power, without gyro
 Puck.on('accel', function(a) {
   //console.log(a);
-  if(a.acc.z < -1000) {
+  if(a.acc.z < -3000) {
     changeMode=1;
   } else {
     changeMode=0;
