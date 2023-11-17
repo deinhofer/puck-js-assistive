@@ -1,73 +1,12 @@
+﻿<!DOCTYPE html>
 <html>
- <head>
-  <style>
-body {
-  margin: 5%;
-  background-color: #000;
-}
-
-table {
-  width:100%;
-  height:100%;
- table-layout: fixed;
-}
-
-td {
-  background-color: #444;
-  color: #fff;
-  border: 2px solid white;
-  border-radius: 5px;  
-  font-size: 5vw;
-  margin: 5px;
-  text-align:center;
-  cursor: pointer;
-  user-select: none;
-}
-  </style>    
- </head>
- <body>
-  <script>
-
-function changeHIDKey(modeIndex, keyCode) {
-    let newCode=
-    `
-    var int = require("ble_hid_combo");
-    NRF.setServices(undefined, { hid : int.report });
-
-    let modeIndex=${modeIndex};
-    modeValue=[int.BUTTON.LEFT, ${keyCode}];
-
-    function btnPressed() {
-      if(modeIndex==0) {
-        int.holdButton(modeValue[modeIndex]);
-      } else if(modeIndex==1) {
-        int.keyDown(modeValue[modeIndex]);
-      }
-    }
-
-    function btnReleased(){
-      int.releaseButton(int.BUTTON.ALL, function() {
-        int.keyUp(int.KEY.ALL);
-      });
-    }
-
-    // trigger btnPressed whenever the button is pressed
-    setWatch(btnPressed, BTN, {edge:"rising",repeat:true,debounce:50});
-    setWatch(btnReleased, BTN, {edge:"falling",repeat:true,debounce:50});
-    `
-    console.log(`sending new code: ${newCode}`);
-    Puck.write(newCode);
-    console.log("wrote new code");
-}
-
-  </script>
-  <script src="https://www.puck-js.com/puck.js"></script>
-  <table>
-    <tr>
-     <td onclick="changeHIDKey(0,44)">Mouse: Left Click</td>
-     <td onclick="changeHIDKey(1,44)">Key: SPACE</td>
-     <td onclick="changeHIDKey(1,4)">Key: a</td>
-    </tr>
-  </table>
- </body>
+<head>
+    <title>AsTeRICS Grid</title>
+    <meta charset='utf-8'>
+</head>
+<body>
+<script>
+    window.location.replace("../");
+</script>
+</body>
 </html>
