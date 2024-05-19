@@ -1,0 +1,48 @@
+<html>
+ <head>
+   <style>
+   </style>    
+ </head>
+ <body>
+  <script src="https://www.puck-js.com/puck.js"></script>
+  <script type="text/javascript">
+    var tagDataAll="";
+    // Called when we get a line of data - updates the light color
+    function onLine(v) {
+      tagDataAll+=v;
+      document.getElementById("result").value = tagDataAll;
+    }
+
+    // When clicked, connect or disconnect
+    var connection;
+    function connectReader() {
+      if (connection) {
+        connection.close();
+        connection = undefined;
+      }
+      Puck.connect(function(c) {
+        if (!c) {
+          alert("Couldn't connect!");
+          return;
+        }
+        connection = c;
+        tagDataAll="";
+        onLine("");
+        // Handle the data we get back, and call 'onLine'
+        // whenever we get a line
+        var buf = "";
+        connection.write("echo(false);\n");
+        connection.on("data", function(d) {
+          onLine(d);
+        });
+      });
+    }
+  </script>
+  <div>
+    <button id="connectreader" onclick="connectReader()">Connect tag reader</button>
+    <p>
+    <label for="result">Result of scan</label></p>
+    <textarea id="result" name="result" rows="20" cols="50" readonly="true"></textarea>      
+  </div>  
+ </body>
+</html>
