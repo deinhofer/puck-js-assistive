@@ -1,5 +1,7 @@
 var int = require("ble_hid_combo");
 NRF.setServices(undefined, { hid : int.report });
+//lowering connection interval reduces bluetooth speed but also reduces power consumption from 665 to 50 (see E.getPowerUsage())
+NRF.setConnectionInterval(100);
 
 let modeIndex=1;
 const modeValue=[int.BUTTON.LEFT, 44, 40];
