@@ -1,9 +1,10 @@
 <html>
  <head>
+ <title>Puck-js Assistive Button</title>
   <style>
 body {
   margin: 5%;
-  background-color: #000;
+  #background-color: #000;
 }
 
 table {
@@ -26,18 +27,71 @@ td {
   </style>    
  </head>
  <body>
+  <script src="./web/src/uart.js"></script>
   <script>
+
+ let btConnection = null;
+ let serialConnection = null;
+ UART.debug = 3;
+
+ async function sendBluetooth(data) {
+	 btConnection = btConnection || (await getConnection(UART.connectBluetooth));
+	 btConnection.on("data", (data) => console.log("received BT data:", data));
+	 btConnection.write(data + '\r\n\n');
+ }
+ async function getConnection(connectFn) {
+	 return new Promise(resolve => {
+		 connectFn(resolve);
+	 });
+ }
+
+ function disconnectBluetooth() {
+	 if (btConnection) {
+		 btConnection.close();
+		 btConnection = null;
+	 }
+ }
 
 function changeHIDKey(modeIndex, keyCode) {
     let newCode=
     `
+	LED2.set();
     var int = require("ble_hid_combo");
     NRF.setServices(undefined, { hid : int.report });
-
+    //lowering connection interval reduces bluetooth speed but also reduces power consumption from 665 to 50 (see E.getPowerUsage())
+    NRF.setConnectionInterval(100);
+	
     let modeIndex=${modeIndex};
     modeValue=[int.BUTTON.LEFT, ${keyCode}];
 
+	if(modeIndex==0) {
+		NRF.setAdvertising([
+	  {}, // include original Advertising packet
+	  [   // second packet containing 'appearance'
+		2, 1, 6,  // standard Bluetooth flags
+		3,3,0x12,0x18, // HID Service
+		//3,0x19,0xc1,0x03 // Appearance: 0x03C1 Keyboard
+		3, 0x19, 0xc2,0x03 // : 0x03C2 Mouse
+			// 0xc3,0x03 : 0x03C3 Joystick
+	  ]
+	  ]);
+	} else if(modeIndex==1) {
+		NRF.setAdvertising([
+	  {}, // include original Advertising packet
+	  [   // second packet containing 'appearance'
+		2, 1, 6,  // standard Bluetooth flags
+		3,3,0x12,0x18, // HID Service
+		3,0x19,0xc1,0x03 // Appearance: 0x03C1 Keyboard
+		//0xc2,0x03 : 0x03C2 //Mouse
+			// 0xc3,0x03 : 0x03C3 Joystick
+	  ]
+	  ]);
+	}
+
+
     function btnPressed() {
+	  //print("Button pressed");
+	  LED3.set();
       if(modeIndex==0) {
         int.holdButton(modeValue[modeIndex]);
       } else if(modeIndex==1) {
@@ -46,6 +100,8 @@ function changeHIDKey(modeIndex, keyCode) {
     }
 
     function btnReleased(){
+	  //print("Button released");
+	  LED3.reset();
       int.releaseButton(int.BUTTON.ALL, function() {
         int.keyUp(int.KEY.ALL);
       });
@@ -54,20 +110,42 @@ function changeHIDKey(modeIndex, keyCode) {
     // trigger btnPressed whenever the button is pressed
     setWatch(btnPressed, BTN, {edge:"rising",repeat:true,debounce:50});
     setWatch(btnReleased, BTN, {edge:"falling",repeat:true,debounce:50});
+	
+	LED1.reset();
+	LED2.reset();
+	LED3.reset();
     `
     console.log(`sending new code: ${newCode}`);
-    Puck.write(newCode);
+    //Puck.write(newCode+"\r\n");
+	sendBluetooth(newCode);
     console.log("wrote new code");
 }
 
   </script>
-  <script src="https://www.puck-js.com/puck.js"></script>
-  <table>
-    <tr>
-     <td onclick="changeHIDKey(0,44)">Mouse: Left Click</td>
-     <td onclick="changeHIDKey(1,44)">Key: SPACE</td>
-     <td onclick="changeHIDKey(1,4)">Key: a</td>
-    </tr>
-  </table>
+
+  <h1>Puck-js Wireless Assistive Button</h1>
+  <p>
+  The puck-js is a small microcontroller that can be used as a wireless (Bluetooth) Assistive Button. The device can be programmed as an HID device emulating key strokes, mouse clicks or mouse movements (see also <a href="https://www.espruino.com/BLE+Keyboard">Tutorial Puck-js BLE HID Keyboard</a>).
+  You can configure the assigned function by clicking on one of the buttons below. 
+  
+  <p>
+  <image src="https://www.espruino.com/refimages/tutorials_Web_Bluetooth_thumb.png"/>
+  <p>
+  
+  Please also ensure the following:
+  <ol>
+    <li>Turn on the Bluetooth adapter of your computer</li>
+	<li>Open the list of paired Bluetooth devices on your computer.</li>
+    <li>Turn on the puck-js by inserting the cell battery</li>
+	<li><strong>Unpair</strong> your puck-js device!</li>
+	<li>Now click on one of the buttons and select your device in the popup dialog:
+       <button onclick="changeHIDKey(0,44)">Mouse: Left Click</button>
+       <button onclick="changeHIDKey(1,44)">Key: SPACE</button>
+       <!--<button onclick="changeHIDKey(1,4)">Key: a</button>-->
+    <li>The puck-js is finally configured, when the <strong>green LED turns on and off again.</strong></li>
+	<li><button onclick="disconnectBluetooth()">Disconnect Bluetooth connection</button></li>
+	<li>Open the list of paired Bluetooth devices on your computer and pair the device.</li>
+	<li>It should now come up as a keyboard or mouse.</li>
+  </ol>
  </body>
 </html>
