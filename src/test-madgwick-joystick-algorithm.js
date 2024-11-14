@@ -1,3 +1,7 @@
+//This example code is based on the following forum post: 
+//https://forum.espruino.com/conversations/398337/?cachebuster=UG0NKB
+
+
 // Turn the accelerometer on, pulse the green LED to show we've connected
 var hz=52;
 
