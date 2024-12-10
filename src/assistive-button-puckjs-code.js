@@ -4,7 +4,7 @@ NRF.setServices(undefined, { hid : int.report });
 //lowering connection interval reduces bluetooth speed but also reduces power consumption from 665 to 50 (see E.getPowerUsage())
 NRF.setConnectionInterval(100);
 
-let modeIndex=0;
+let modeIndex=1;
 modeValue=[int.BUTTON.LEFT, 44];
 
 if(modeIndex==0) {
@@ -33,42 +33,48 @@ if(modeIndex==0) {
 
 
 function btnPressed() {
-  //print("Button pressed");
+  print("Button pressed");
   LED3.set();
-    if(modeIndex==0) {
-      try{
-        int.holdButton(modeValue[modeIndex]);
-      } catch(err) {
-        console.log("Cannot send mouse function, connected as HID device? Reason: "+err.message);
-      }
-    } else if(modeIndex==1) {
-      try{
-        int.keyDown(modeValue[modeIndex]);
-      }catch (err) {
-        console.log("Cannot send keyboard function, connected as HID device? Reason: "+err.message);
-      }
+  if(modeIndex==0) {
+    try{
+      int.holdButton(modeValue[modeIndex]);
+    } catch(err) {
+      console.log("Cannot send mouse function, connected as HID device? Reason: "+err.message);
     }
+  } else if(modeIndex==1) {
+    try{
+      int.keyDown(modeValue[modeIndex]);
+    }catch (err) {
+      console.log("Cannot send keyboard function, connected as HID device? Reason: "+err.message);
+    }
+  }
   }
 
 function btnReleased(){
-  //print("Button released");
+  print("Button released");
   LED3.reset();
-  try{
-    int.releaseButton(int.BUTTON.ALL);
-  }catch(err) {
-    console.log("Cannot send mouse function, connected as HID device? Reason: "+err.message);
-  }
-
-  try {
-    int.keyUp(int.KEY.ALL);
-  }catch (err) {
-    console.log("Cannot send keyboard function, connected as HID device? Reason: "+err.message);
+  //NOTE: When we are in keyboard mode, we must not try to release the mouse button, otherwise the HID stack
+  //is in an invalid state and the program hangs.
+  if(modeIndex==0) {
+    try{
+      int.releaseButton(int.BUTTON.ALL);
+    }catch(err) {
+      console.log("Cannot send mouse function, connected as HID device? Reason: "+err.message);
+    }
+  } else if(modeIndex==1) {
+    try {
+      int.keyUp(int.KEY.ALL);
+    }catch (err) {
+      console.log("Cannot send keyboard function, connected as HID device? Reason: "+err.message);
+    }
   }
 }
 
 // trigger btnPressed whenever the button is pressed
 setWatch(btnPressed, BTN, {edge:"rising",repeat:true,debounce:50});
 setWatch(btnReleased, BTN, {edge:"falling",repeat:true,debounce:50});
+
+Serial1.setConsole(true);
 
 LED1.reset();
 LED2.reset();
