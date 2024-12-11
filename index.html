@@ -52,73 +52,45 @@ td {
 	 }
  }
 
+ async function loadFile(url) {
+  try {
+    const response = await fetch(url);
+    const data = await response.text();
+    console.log(data);
+    return data;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 function changeHIDKey(modeIndex, keyCode) {
-    let newCode=
+    // read template code from .js file
+    let puckCode=loadFile('src/assistive-button-puckjs-code.js');
+    
+    //first reset puck and indicate start of download
+    let initCode=`
+      reset();
+      LED2.set();
     `
-	LED2.set();
-    var int = require("ble_hid_combo");
-    NRF.setServices(undefined, { hid : int.report });
-    //lowering connection interval reduces bluetooth speed but also reduces power consumption from 665 to 50 (see E.getPowerUsage())
-    NRF.setConnectionInterval(100);
-	
-    let modeIndex=${modeIndex};
-    modeValue=[int.BUTTON.LEFT, ${keyCode}];
+    sendBluetooth(initCode);
+    console.log("wrote init code");
 
-	if(modeIndex==0) {
-		NRF.setAdvertising([
-	  {}, // include original Advertising packet
-	  [   // second packet containing 'appearance'
-		2, 1, 6,  // standard Bluetooth flags
-		3,3,0x12,0x18, // HID Service
-		//3,0x19,0xc1,0x03 // Appearance: 0x03C1 Keyboard
-		3, 0x19, 0xc2,0x03 // : 0x03C2 Mouse
-			// 0xc3,0x03 : 0x03C3 Joystick
-	  ]
-	  ]);
-	} else if(modeIndex==1) {
-		NRF.setAdvertising([
-	  {}, // include original Advertising packet
-	  [   // second packet containing 'appearance'
-		2, 1, 6,  // standard Bluetooth flags
-		3,3,0x12,0x18, // HID Service
-		3,0x19,0xc1,0x03 // Appearance: 0x03C1 Keyboard
-		//0xc2,0x03 : 0x03C2 //Mouse
-			// 0xc3,0x03 : 0x03C3 Joystick
-	  ]
-	  ]);
-	}
+    //send template code
+  	sendBluetooth(puckCode);
+    console.log("wrote template code");
 
-
-    function btnPressed() {
-	  //print("Button pressed");
-	  LED3.set();
-      if(modeIndex==0) {
-        int.holdButton(modeValue[modeIndex]);
-      } else if(modeIndex==1) {
-        int.keyDown(modeValue[modeIndex]);
-      }
-    }
-
-    function btnReleased(){
-	  //print("Button released");
-	  LED3.reset();
-      int.releaseButton(int.BUTTON.ALL, function() {
-        int.keyUp(int.KEY.ALL);
-      });
-    }
-
-    // trigger btnPressed whenever the button is pressed
-    setWatch(btnPressed, BTN, {edge:"rising",repeat:true,debounce:50});
-    setWatch(btnReleased, BTN, {edge:"falling",repeat:true,debounce:50});
-	
-	LED1.reset();
-	LED2.reset();
-	LED3.reset();
+    let configCode=`
+      modeIndex=${modeIndex};
+      modeValue=[int.BUTTON.LEFT, ${keyCode}];
+      `
+    let endCode=`
+      LED1.reset();
+      LED2.reset();
+      LED3.reset();
     `
-    console.log(`sending new code: ${newCode}`);
-    //Puck.write(newCode+"\r\n");
-	sendBluetooth(newCode);
-    console.log("wrote new code");
+
+    sendBluetooth(configCode+endCode);
+    console.log("Wrote config code and end code");
 }
 
   </script>
