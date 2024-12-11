@@ -4,7 +4,7 @@ NRF.setServices(undefined, { hid : int.report });
 //lowering connection interval reduces bluetooth speed but also reduces power consumption from 665 to 50 (see E.getPowerUsage())
 NRF.setConnectionInterval(100);
 
-let modeIndex=1;
+let modeIndex=0;
 modeValue=[int.BUTTON.LEFT, 44];
 
 if(modeIndex==0) {
@@ -74,7 +74,7 @@ function btnReleased(){
 setWatch(btnPressed, BTN, {edge:"rising",repeat:true,debounce:50});
 setWatch(btnReleased, BTN, {edge:"falling",repeat:true,debounce:50});
 
-Serial1.setConsole(true);
+//Serial1.setConsole(true);
 
 LED1.reset();
 LED2.reset();
