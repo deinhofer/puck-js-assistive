@@ -32,17 +32,30 @@ td {
 
  let btConnection = null;
  let serialConnection = null;
- UART.debug = 3;
+ UART.debug = 0;
 
  async function sendBluetooth(data) {
 	 btConnection = btConnection || (await getConnection(UART.connectBluetooth));
-	 btConnection.on("data", (data) => console.log("received BT data:", data));
+   btConnection.on("data", (data) => console.log("received BT data:", data));
 	 btConnection.write(data + '\r\n\n');
  }
  async function getConnection(connectFn) {
-	 return new Promise(resolve => {
-		 connectFn(resolve);
-	 });
+    return new Promise(resolve => {
+      connectFn((connection) => {
+              if (!connection) {
+                  return;
+              } 
+              resolve(connection);
+      });
+    });
+}
+
+function connectBluetooth() {
+  disconnectBluetooth();
+  getConnection(UART.connectBluetooth).then(connection =>{
+    btConnection=connection;
+    btConnection.on("data", (data) => console.log("received BT data:", data));
+  });
  }
 
  function disconnectBluetooth() {
@@ -56,7 +69,7 @@ td {
   try {
     const response = await fetch(url);
     const data = await response.text();
-    console.log(data);
+    //console.log(data);
     return data;
   } catch (err) {
     console.error(err);
@@ -64,33 +77,36 @@ td {
 }
 
 function changeHIDKey(modeIndex, keyCode) {
-    // read template code from .js file
-    let puckCode=loadFile('src/assistive-button-puckjs-code.js');
-    
-    //first reset puck and indicate start of download
-    let initCode=`
-      reset();
-      LED2.set();
-    `
-    sendBluetooth(initCode);
-    console.log("wrote init code");
+    //read ble_hid_keyboard module from a given URL and store in the Storage of
+    //puck.js
+    loadFile("src/assistive-button-puckjs-init-code.js").then((initCode) => {
+      console.log("Init code:"+initCode);
 
-    //send template code
-  	sendBluetooth(puckCode);
-    console.log("wrote template code");
+      sendBluetooth(initCode).then(()=> {
+        loadFile('src/assistive-button-puckjs-code.js').then((puckCode) => { // read template code from .js file
+          try{
+                      
+            let configCode=`
+              //modeIndex=${modeIndex};
+              //modeValue=[int.BUTTON.LEFT, ${keyCode}];
+              `
+          
+            let endCode=`
+              LED1.reset();
+              LED2.reset();
+              LED3.reset();
+            `
 
-    let configCode=`
-      modeIndex=${modeIndex};
-      modeValue=[int.BUTTON.LEFT, ${keyCode}];
-      `
-    let endCode=`
-      LED1.reset();
-      LED2.reset();
-      LED3.reset();
-    `
-
-    sendBluetooth(configCode+endCode);
-    console.log("Wrote config code and end code");
+            let allCodes=puckCode+configCode+endCode;
+            //let allCodes=puckCode+endCode;
+            console.log("allCodes: \n"+allCodes);
+            sendBluetooth(allCodes).then(resolve => {console.log("Code sent to puck")});       
+          } catch(error) {
+            alert(error);
+          }
+      });
+    });
+  });
 }
 
   </script>
@@ -110,7 +126,8 @@ function changeHIDKey(modeIndex, keyCode) {
 	<li>Open the list of paired Bluetooth devices on your computer.</li>
     <li>Turn on the puck-js by inserting the cell battery</li>
 	<li><strong>Unpair</strong> your puck-js device!</li>
-	<li>Now click on one of the buttons and select your device in the popup dialog:
+  <li><button onclick="connectBluetooth()">Connect to puck.js</button></li>
+	<li>Now select button function:</li>
        <button onclick="changeHIDKey(0,44)">Mouse: Left Click</button>
        <button onclick="changeHIDKey(1,44)">Key: SPACE</button>
        <!--<button onclick="changeHIDKey(1,4)">Key: a</button>-->
