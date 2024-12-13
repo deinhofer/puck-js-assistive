@@ -83,12 +83,10 @@ function changeHIDKey(modeIndex, keyCode) {
       console.log("Init code:"+initCode);
 
       sendBluetooth(initCode).then(()=> {
-        loadFile('src/assistive-button-puckjs-code.js').then((puckCode) => { // read template code from .js file
+        loadFile('src/assistive-SWButton-puckjs-code.js').then((puckCode) => { // read template code from .js file
           try{
                       
             let configCode=`
-              //modeIndex=${modeIndex};
-              //modeValue=[int.BUTTON.LEFT, ${keyCode}];
               `
           
             let endCode=`
