@@ -76,9 +76,3 @@ function btnReleased(){
 // trigger btnPressed whenever the button is pressed
 setWatch(btnPressed, BTN, {edge:"rising",repeat:true,debounce:50});
 setWatch(btnReleased, BTN, {edge:"falling",repeat:true,debounce:50});
-
-LED1.reset();
-LED2.reset();
-LED3.reset();
-
-//Serial1.setConsole(true);
