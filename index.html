@@ -34,38 +34,11 @@ td {
  let serialConnection = null;
  UART.debug = 0;
 
- async function sendBluetooth(data) {
-	 btConnection = btConnection || (await getConnection(UART.connectBluetooth));
-   btConnection.on("data", (data) => console.log("received BT data:", data));
-	 btConnection.write(data + '\r\n\n');
- }
- async function getConnection(connectFn) {
-    return new Promise(resolve => {
-      connectFn((connection) => {
-              if (!connection) {
-                  return;
-              } 
-              resolve(connection);
-      });
-    });
-}
-
-function connectBluetooth() {
-  disconnectBluetooth();
-  getConnection(UART.connectBluetooth).then(connection =>{
-    btConnection=connection;
-    btConnection.on("data", (data) => console.log("received BT data:", data));
-  });
- }
-
- function disconnectBluetooth() {
-	 if (btConnection) {
-		 btConnection.close();
-		 btConnection = null;
-	 }
- }
-
- async function loadFile(url) {
+/**
+ * Asynchronously loads the contents of the given URL.
+ * @param {string} [url] - URL to load.
+ */
+async function loadFile(url) {
   try {
     const response = await fetch(url);
     const data = await response.text();
@@ -76,34 +49,112 @@ function connectBluetooth() {
   }
 }
 
-function changeHIDKey(modeIndex, keyCode) {
-    //read ble_hid_keyboard module from a given URL and store in the Storage of
-    //puck.js
+/**
+ * Asynchronously sends data (javascript code) to puck.js via Bluetooth. 
+ * @param {string} [data] - The program code in Javascript as string.
+ */
+async function sendBluetooth(data) {
+  btConnection = btConnection || (await getConnection(UART.connectBluetooth));
+  btConnection.on("data", (data) => console.log("received BT data:", data));
+  btConnection.write(data + '\r\n\n');
+}
+
+/**
+ * Asynchronously connects to the puck.js device.
+ * @param {function} [connectFn] - The connection function (Bluetooth or UART) of uart.js.
+ */
+async function getConnection(connectFn) {
+  return new Promise(resolve => {
+    connectFn((connection) => {
+            if (!connection) {
+                return;
+            } 
+            resolve(connection);
+    });
+  });
+}
+
+/**
+ * Connects to the puck.js device and sends initialization code.
+ * This can be downloading dependencies, like ble_hid_combo, to the storage or downloading the
+ * main program.
+ */
+function connectAndInitBluetooth() {
+  disconnectBluetooth();
+  getConnection(UART.connectBluetooth).then(connection =>{
+    //if connection was successful, remember connection.
+    btConnection=connection;
+    btConnection.on("data", (data) => console.log("received BT data:", data));
+
+    //load and send init code
     loadFile("src/assistive-button-puckjs-init-code.js").then((initCode) => {
-      console.log("Init code:"+initCode);
+      console.log("Sending init code:"+initCode);
 
       sendBluetooth(initCode).then(()=> {
-        loadFile('src/assistive-SWButton-puckjs-code.js').then((puckCode) => { // read template code from .js file
-          try{
-                      
-            let configCode=`
-              `
-          
-            let endCode=`
-              LED1.reset();
-              LED2.reset();
-              LED3.reset();
-            `
-
-            let allCodes=puckCode+configCode+endCode;
-            //let allCodes=puckCode+endCode;
-            console.log("allCodes: \n"+allCodes);
-            sendBluetooth(allCodes).then(resolve => {console.log("Code sent to puck")});       
-          } catch(error) {
-            alert(error);
-          }
+      
+      //load and send main program
+        loadFile("src/assistive-SWButton-puckjs-code.js").then((puckCode) => {
+          console.log("Sending main program: "+puckCode);
+          sendBluetooth(puckCode).then(()=> {console.log("Puck initialized successfully")}).catch((error) => {
+            alert("Sending of init code failed, disconnecting again...");
+            disconnectBluetooth();
+          });
+        }).catch((error) => {
+          alert("Sending of init code failed, disconnecting again...");
+          disconnectBluetooth();
+        });
+      }).catch((error) => {
+        alert("Sending of init code failed, disconnecting again...");
+        disconnectBluetooth();
       });
     });
+  });
+}
+
+/**
+ * Disconnect from the puck.js device.
+ */
+function disconnectBluetooth() {
+  if (btConnection) {
+    btConnection.close();
+    btConnection = null;
+  }
+}
+
+/**
+ * Function to reconfigure button actions and timings. Expects the puck.js to be initialized.
+ * @param {number} [modeIndex] - Differ between mouse and keyboard action. Could also be done with to functions.
+ * @param {number} [keyCode] - The keyCode to send based on the ble_hid_combo KEY definitions.
+ */
+function changeHIDKey(modeIndex, keyCode) {
+  let initCode=`
+    LED2.set();
+  `
+  let configCode=`
+    `
+  //if modeIndex==0: configure mouse click
+  if(modeIndex == 0) {
+    configCode=`
+      var functions = { S:   function(){ mouseClickAction("S",int.BUTTON.LEFT,1); }
+                      };
+    `
+  } else { //else configure keyboard action
+    configCode=`
+      var functions = {  S:  function(){ tapKeyAction("L",${keyCode}) }
+                      };
+    `          
+  }
+
+  let endCode=`
+    LED1.reset();
+    LED2.reset();
+    LED3.reset();
+  `
+  let allCodes=initCode+configCode+endCode;
+  console.log("allCodes: \n"+allCodes);
+  sendBluetooth(allCodes).then(resolve => {console.log("Puck action configured successfully")}).catch((error)=> {
+    console.log("Puck action could not be configured: "+error);
+    alert("Puck action could not be configured: "+error);
   });
 }
 
@@ -124,7 +175,7 @@ function changeHIDKey(modeIndex, keyCode) {
 	<li>Open the list of paired Bluetooth devices on your computer.</li>
     <li>Turn on the puck-js by inserting the cell battery</li>
 	<li><strong>Unpair</strong> your puck-js device!</li>
-  <li><button onclick="connectBluetooth()">Connect to puck.js</button></li>
+  <li><button onclick="connectAndInitBluetooth()">Connect and initialize puck.js</button></li>
 	<li>Now select button function:</li>
        <button onclick="changeHIDKey(0,44)">Mouse: Left Click</button>
        <button onclick="changeHIDKey(1,44)">Key: SPACE</button>
@@ -132,7 +183,7 @@ function changeHIDKey(modeIndex, keyCode) {
     <li>The puck-js is finally configured, when the <strong>green LED turns on and off again.</strong></li>
 	<li><button onclick="disconnectBluetooth()">Disconnect Bluetooth connection</button></li>
 	<li>Open the list of paired Bluetooth devices on your computer and pair the device.</li>
-	<li>It should now come up as a keyboard or mouse.</li>
+	<li>It should now come up as keyboard or mouse or both.</li>
   </ol>
  </body>
 </html>
