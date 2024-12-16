@@ -87,13 +87,13 @@ function connectAndInitBluetooth() {
     btConnection.on("data", (data) => console.log("received BT data:", data));
 
     //load and send init code
-    loadFile("src/assistive-button-puckjs-init-code.js").then((initCode) => {
+    loadFile("assistive-button/src/init.js").then((initCode) => {
       console.log("Sending init code:"+initCode);
 
       sendBluetooth(initCode).then(()=> {
       
       //load and send main program
-        loadFile("src/assistive-SWButton-puckjs-code.js").then((puckCode) => {
+        loadFile("assistive-button/src/main.js").then((puckCode) => {
           console.log("Sending main program: "+puckCode);
           sendBluetooth(puckCode).then(()=> {console.log("Puck initialized successfully")}).catch((error) => {
             alert("Sending of init code failed, disconnecting again...");
