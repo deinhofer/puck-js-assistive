@@ -1,3 +1,6 @@
+//Turn off echo to improve download/execution speed
+echo(false);
+
 LED2.set();
 
 // when deployed from espruino.com/ide you can also use ble_hid_combo, as the IDE 
@@ -126,3 +129,4 @@ var functions = { S:   function(){ mouseClickAction("S",int.BUTTON.LEFT,1); },
 LED1.reset();
 LED2.reset();
 LED3.reset();
+echo(true);

@@ -1,3 +1,6 @@
+//Turn off echo to improve download/execution speed
+echo(false);
+
 //Turn on LED to indicate download
 LED2.set();
 
@@ -15,3 +18,5 @@ require("Storage").write("hid_", "function l(a){for(var b=0;b<c.length;b++){if(c
 //Otherwise there could be old timeouts and watchdogs configured
 //reset();
 LED2.reset();
+//Turn off echo to improve download/execution speed
+echo(true);
