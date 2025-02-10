@@ -54,9 +54,11 @@ async function loadFile(url) {
  * @param {string} [data] - The program code in Javascript as string.
  */
 async function sendBluetooth(data) {
+  document.getElementById("status").innerHTML="connecting...";
   btConnection = btConnection || (await getConnection(UART.connectBluetooth));
-  btConnection.on("data", (data) => console.log("received BT data:", data));
-  btConnection.write(data + '\r\n\n');
+  document.getElementById("status").innerHTML="sending...";
+  await btConnection.write(data + '\r\n\n');
+  document.getElementById("status").innerHTML="sent successfully";
 }
 
 /**
@@ -64,60 +66,82 @@ async function sendBluetooth(data) {
  * @param {function} [connectFn] - The connection function (Bluetooth or UART) of uart.js.
  */
 async function getConnection(connectFn) {
+  document.getElementById("status").innerHTML="connecting...";
   return new Promise(resolve => {
     connectFn((connection) => {
             if (!connection) {
                 return;
-            } 
+            }
+            btConnection=connection;
+            btConnection.on("data", (data) => console.log("received BT data:", data));
+            document.getElementById("status").innerHTML="connected";
             resolve(connection);
     });
   });
 }
+
+async function resetPuck() {
+  try{  
+    await sendBluetooth("reset();");
+  } catch(error) {
+    alert("Sending of code failed, error: "+error);
+    disconnectBluetooth();
+  }    
+}
+
+async function initModules() {
+  try{
+    //load and send init code
+    code=await loadFile("assistive-button/src/init.puck.js");
+    console.log("Sending init code:\n"+code);
+    await sendBluetooth(code);
+    document.getElementById("status").innerHTML="sent successfully";
+  } catch(error) {
+    alert("Sending of code failed, error: "+error);
+    disconnectBluetooth();
+  }  
+}
+
+async function initMain() {
+  try{
+    resetPuck();
+    //load and send init code
+    code=await loadFile("assistive-button/src/main.puck.js");
+    console.log("Sending init code:\n"+code);
+    await sendBluetooth(code);
+    console.log("Puck initialized successfully");
+  } catch(error) {
+    alert("Sending of code failed, error: "+error);
+    disconnectBluetooth();
+  }  
+}
+
 
 /**
  * Connects to the puck.js device and sends initialization code.
  * This can be downloading dependencies, like ble_hid_combo, to the storage or downloading the
  * main program.
  */
-function connectAndInitBluetooth() {
-  disconnectBluetooth();
-  getConnection(UART.connectBluetooth).then(connection =>{
-    //if connection was successful, remember connection.
-    btConnection=connection;
-    btConnection.on("data", (data) => console.log("received BT data:", data));
-
-    //load and send init code
-    loadFile("assistive-button/src/init.js").then((initCode) => {
-      console.log("Sending init code:"+initCode);
-
-      sendBluetooth(initCode).then(()=> {
-      
-      //load and send main program
-        loadFile("assistive-button/src/main.js").then((puckCode) => {
-          console.log("Sending main program: "+puckCode);
-          sendBluetooth(puckCode).then(()=> {console.log("Puck initialized successfully")}).catch((error) => {
-            alert("Sending of init code failed, disconnecting again...");
-            disconnectBluetooth();
-          });
-        }).catch((error) => {
-          alert("Sending of init code failed, disconnecting again...");
-          disconnectBluetooth();
-        });
-      }).catch((error) => {
-        alert("Sending of init code failed, disconnecting again...");
-        disconnectBluetooth();
-      });
-    });
-  });
+async function connectAndMain() {
+  try{
+    await getConnection(UART.connectBluetooth);
+    console.log("Puck connected successfully");
+  } catch(error) {
+    alert("Sending of code failed, error: "+error);
+    disconnectBluetooth();
+  }
 }
 
 /**
  * Disconnect from the puck.js device.
  */
-function disconnectBluetooth() {
+async function disconnectBluetooth() {
   if (btConnection) {
-    btConnection.close();
+    console.log("Disconnecting bluetooth connection...");
+    await btConnection.close();
     btConnection = null;
+    console.log("Disconnected bluetooth connection...");
+    document.getElementById("status").innerHTML="disconnected";
   }
 }
 
@@ -168,14 +192,25 @@ function changeHIDKey(modeIndex, keyCode) {
   <p>
   <image src="https://www.espruino.com/refimages/tutorials_Web_Bluetooth_thumb.png"/>
   <p>
-  
+  <h2>Status</h2>
+  <div id="status">
+disconntected    
+  </div>
+
+  <h2>Assistive Configuration</h2>
   Please execute the following steps:
   <ol>
     <li>Turn on the Bluetooth adapter of your computer</li>
 	<li>Open the list of paired Bluetooth devices on your computer.</li>
     <li>Turn on the puck-js by inserting the cell battery</li>
 	<li><strong>Unpair</strong> your puck-js device!</li>
-  <li><button onclick="connectAndInitBluetooth()">Connect and initialize puck.js</button></li>
+  <li><button onclick="connectAndMain()">Connect to puck.js</button></li>
+  <li>if not already initialized:
+    <ol>
+      <li><button onclick="initModules()">Init fw modules</button></li>
+      <li><button onclick="initMain()">Init main code</button></li>
+    </ol>
+  </li>
 	<li>Now select button function:</li>
        <button onclick="changeHIDKey(0,44)">Mouse: Left Click</button>
        <button onclick="changeHIDKey(1,44)">Key: SPACE</button>
