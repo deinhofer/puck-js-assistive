@@ -17,7 +17,7 @@ NRF.setAdvertising([
 [   // second packet containing 'appearance'
 2, 1, 6,  // standard Bluetooth flags
 3,3,0x12,0x18, // HID Service
-3, 0x19, 0xc2 || 0xc1 ,0x03 // : 0xC2 Mouse, 0xC1 Keyboard
+3, 0x19, 0xc2 | 0xc1 ,0x03 // : 0xC2 Mouse, 0xC1 Keyboard
 ]
 ]);
 
