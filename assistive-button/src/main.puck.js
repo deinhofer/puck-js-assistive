@@ -8,11 +8,11 @@ LED2.set();
 //var int = require("ble_hid_combo");
 var int = require("hid_");
 
-// Configure the puck.js as a Bluetooth HID device
-NRF.setServices(undefined, { hid : int.report });
-
 //lowering connection interval reduces bluetooth speed but also reduces power consumption from 665 to 50 (see E.getPowerUsage())
 NRF.setConnectionInterval(100);
+
+// Configure the puck.js as a Bluetooth HID device
+NRF.setServices(undefined, { hid : int.report });
 
 //NRF.setAdvertising must be called additionally in case we are connected to Windows 11
 NRF.setAdvertising([
@@ -20,7 +20,7 @@ NRF.setAdvertising([
 [   // second packet containing 'appearance'
 2, 1, 6,  // standard Bluetooth flags
 3,3,0x12,0x18, // HID Service
-3, 0x19, 0xc2 | 0xc1 ,0x03 // : 0xC2 Mouse, 0xC1 Keyboard
+3, 0x19, 0xc0 ,0x03 // : 0xc0 Generic HID, 0xC1 Keyboard, 0xC2 Mouse, 0xc3 Joystick
 ]
 ]);
 
