@@ -73,7 +73,7 @@ async function getConnection(connectFn) {
                 return;
             }
             btConnection=connection;
-            btConnection.on("data", (data) => console.log("received BT data:", data));
+            btConnection.on("data", (data) => console.log(data));
             document.getElementById("status").innerHTML="connected";
             resolve(connection);
     });
