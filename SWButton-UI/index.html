@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puck.js HID Configuration</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <h1>Puck.js HID Configuration</h1>
+
+    <!-- Connection Buttons -->
+    <button id="connect">Connect to Puck.js</button>
+    <button id="disconnect" disabled>Disconnect</button>
+    <p id="status">Status: Not Connected</p>
+
+    <!-- 错误消息显示框 -->
+    <div id="error-message" style="display: none; color: red; font-weight: bold; margin-top: 10px;"></div>
+
+    <!-- Three-column layout -->
+    <div class="action-container">
+        <!-- Short Press (S) -->
+        <div class="action-column">
+            <h2>Short Press (S)</h2>
+            <select id="actionSelectS" class="actionSelect"></select>
+            <button class="sendAction" data-type="S">Send Action</button>
+        </div>
+
+        <!-- Double Press (SS) -->
+        <div class="action-column">
+            <h2>Double Press (SS)</h2>
+            <select id="actionSelectSS" class="actionSelect"></select>
+            <button class="sendAction" data-type="SS">Send Action</button>
+        </div>
+
+        <!-- Long Press (L) -->
+        <div class="action-column">
+            <h2>Long Press (L)</h2>
+            <select id="actionSelectL" class="actionSelect"></select>
+            <button class="sendAction" data-type="L">Send Action</button>
+        </div>
+    </div>
+
+    <p id="log"></p>
+</body>
+</html>
