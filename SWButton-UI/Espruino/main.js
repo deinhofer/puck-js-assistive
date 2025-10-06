@@ -1,4 +1,13 @@
+// SWButton-UI main.js
+// This code sets up a BLE HID device that can execute stored commands based on button press patterns.
+// Commands can be configured via a custom BLE service.
+// Supported commands include key presses and mouse actions.
+
+// Load necessary modules
+// ble_hid_combo provides combined keyboard and mouse HID functionality
 var HID = require("ble_hid_combo");
+// SWButton.js is a custom javascript module and handles button press patterns (single, double, long press).
+// SWButton.js must be stored in the device's storage with the name 'SWButton.js' using the Espruino IDE.
 var SWBtn = eval(require("Storage").read("SWButton.js"));
 
 var storeCommands = { "S": "", "SS": "", "L": "" };
