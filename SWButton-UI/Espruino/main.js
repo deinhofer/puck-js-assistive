@@ -61,6 +61,9 @@ function storeCommand(command, pressType) {
     }
 }
 
+//lowering connection interval reduces bluetooth speed but also reduces power consumption from 665 to 50 (see E.getPowerUsage())
+NRF.setConnectionInterval(100);
+
 // Create additional BLE service for receiving commands
 // Command format: S: AT KP A
 // S - single press, SS - double press, L - long press
@@ -115,20 +118,20 @@ NRF.setServices({
     advertise: [0xBCDE]
 });
 
-
-// Handle BLE connection events
-NRF.on('connect', function (addr) {
-    console.log("Connected to:", addr);
-    // Disable security for simplicity
-    NRF.setSecurity({ mitm: false, display: false, keyboard: false });
-});
-
 // Move mouse action with error handling
 function moveMouseAction(x, y, b) {
     try {
         HID.moveMouse(x, y, b);
     } catch (err) {
         console.log("Cannot send mouse function, connected as HID device? Reason: " + err.message);
+    }
+}
+
+function clickButtonAction(b) {
+    try {
+        HID.clickButton(b);
+    } catch (err) {
+        console.log("Cannot send mouse click, connected as HID device? Reason: " + err.message);
     }
 }
 
@@ -161,14 +164,14 @@ function executeNextCommand(mode) {
                     console.log("Error pressing key:", e);
                 }
             } else if (parts[1] === "CL") {
-                HID.clickButton(HID.BUTTON.LEFT);
+                clickButtonAction(HID.BUTTON.LEFT);
             } else if (parts[1] === "CR") {
-                HID.clickButton(HID.BUTTON.RIGHT);
+                clickButtonAction(HID.BUTTON.RIGHT);
             } else if (parts[1] === "CM") {
-                HID.clickButton(HID.BUTTON.MIDDLE);
+                clickButtonAction(HID.BUTTON.MIDDLE);
             } else if (parts[1] === "CD") {
-                HID.clickButton(HID.BUTTON.LEFT);
-                setTimeout(() => HID.clickButton(HID.BUTTON.LEFT), 100);
+                clickButtonAction(HID.BUTTON.LEFT);
+                setTimeout(() => clickButtonAction(HID.BUTTON.LEFT), 100);
             } else if (parts[1] === "WU") {
                 HID.scroll(1);
             } else if (parts[1] === "WD") {
@@ -237,13 +240,23 @@ function onAccel(a) {
     LED3.reset();
 }
 
-// Enable accelerometer with default frequency (26Hz)
-Puck.accelOn(26);
+// Handle BLE connection events
+NRF.on('connect', function (addr) {
+    console.log("Connected to:", addr);
+    // Disable security for simplicity
+    NRF.setSecurity({ mitm: false, display: false, keyboard: false });
 
-// Listen for accelerometer data
-Puck.on('accel', onAccel);
+    // Enable accelerometer with default frequency (26Hz) only when connected
+    digitalPulse(LED1, 1, 500);
+    Puck.accelOn(26);
+});
 
-// Optional: Turn off the accelerometer when not needed
-// Puck.accelOff();
+// Handle BLE disconnection events
+NRF.on('disconnect', function (reason) {
+    console.log("Disconnected, reason:", reason);
+    // Turn off accelerometer to save power when not connected
+    digitalPulse(LED2, 1, 500);
+    Puck.accelOff();
+});
 
 console.log("Puck.js is ready.");
