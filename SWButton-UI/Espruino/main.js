@@ -3,34 +3,30 @@ var SWBtn = eval(require("Storage").read("SWButton.js"));
 
 var storeCommands = { "S": "", "SS": "", "L": "" };
 
-// 存储按键模式的命令
+// Read stored commands for each button press pattern from persistent storage
 function loadStoredCommands() {
     var stored = require("Storage").read("storeCommands");
     if (stored) {
         storeCommands = JSON.parse(stored);
 
-        // 确保所有存储的值都是字符串
         Object.keys(storeCommands).forEach(key => {
             if (Array.isArray(storeCommands[key])) {
-                storeCommands[key] = storeCommands[key][0]; // 取第一个元素
+                storeCommands[key] = storeCommands[key][0];
             }
-            storeCommands[key] = String(storeCommands[key]).trim(); // 强制转字符串
+            storeCommands[key] = String(storeCommands[key]).trim();
         });
 
-        // 格式化输出，确保和你的 UI 格式一致
         console.log("storeCommands = {\n" +
-        `    "S": "${storeCommands.S}",\n` +
-        `    "SS": "${storeCommands.SS}",\n` +
-        `    "L": "${storeCommands.L}"\n` +
-        "};");
+            `    "S": "${storeCommands.S}",\n` +
+            `    "SS": "${storeCommands.SS}",\n` +
+            `    "L": "${storeCommands.L}"\n` +
+            "};");
 
     } else {
         storeCommands = { "S": "", "SS": "", "L": "" };
     }
 }
 
-
-// 确保 `storeCommands` 存在
 function checkStoredCommandIntegrity() {
     if (!require("Storage").read("storeCommands")) {
         console.log("storeCommands missing, restoring last known state.");
@@ -38,15 +34,15 @@ function checkStoredCommandIntegrity() {
     }
 }
 
-// 存储新的命令，覆盖之前的
+// Stores a command for a given button press pattern
 function storeCommand(command, pressType) {
     if (!["S", "SS", "L"].includes(pressType)) {
         console.log("Invalid pressType:", pressType);
         return;
     }
-    
+
     storeCommands[pressType] = String(command).trim();
-    
+
     try {
         require("Storage").write("storeCommands", JSON.stringify(storeCommands));
         console.log("Successfully updated storeCommands:", JSON.stringify(storeCommands));
@@ -55,7 +51,11 @@ function storeCommand(command, pressType) {
     }
 }
 
-// 处理收到的命令
+// Create additional BLE service for receiving commands
+// Command format: S: AT KP A
+// S - single press, SS - double press, L - long press
+// Example commands: "AT KP A", "AT CL", "AT WU"
+// Supported commands: KP (key press), CL (left click), CR (right click), CM (middle click), CD (double click), WU (wheel up), WD (wheel down), DRAG (mouse drag)
 var receivedCmd = "";
 NRF.setServices({
     0xBCDE: {
@@ -63,7 +63,8 @@ NRF.setServices({
             value: "test message",
             writable: true,
             onWrite: function (evt) {
-                receivedCmd = "";  // 每次接收清空
+                receivedCmd = "";
+                // Convert received data to string
                 var n = new Uint8Array(evt.data);
                 n.forEach((elem) => receivedCmd += String.fromCharCode(elem));
                 receivedCmd = receivedCmd.trim();
@@ -73,12 +74,13 @@ NRF.setServices({
                     return;
                 }
 
-                //解析格式：S: AT KP A
+                // Basic validation of command format
                 if (!receivedCmd.includes(":")) {
                     console.log("Invalid command format (missing ':'):", receivedCmd);
                     return;
                 }
 
+                // Split into press type and command
                 let parts = receivedCmd.split(":");
                 if (parts.length === 2) {
                     let pressType = parts[0].trim();
@@ -89,7 +91,7 @@ NRF.setServices({
                         return;
                     }
 
-                    //存储最新命令
+                    // Store the command
                     storeCommand(command, pressType);
                 } else {
                     console.log("Invalid command format:", receivedCmd);
@@ -97,19 +99,21 @@ NRF.setServices({
             }
         }
     }
-}, {
+}, {// Add HID service
+    // Advertise 0xBCDE service alongside HID
     hid: HID.report,
     advertise: [0xBCDE]
 });
 
 
-// 监听连接状态
-NRF.on('connect', function(addr) {
+// Handle BLE connection events
+NRF.on('connect', function (addr) {
     console.log("Connected to:", addr);
+    // Disable security for simplicity
     NRF.setSecurity({ mitm: false, display: false, keyboard: false });
 });
 
-// 执行存储的命令
+// Execute the command associated with the button press pattern
 function executeNextCommand(mode) {
     var command = storeCommands[mode];
 
@@ -123,7 +127,7 @@ function executeNextCommand(mode) {
     let parts = command.split(" ");
     if (parts[0] === "AT") {
         if (parts[1] === "KP") {
-            let key = parts.slice(2).join(" ").toUpperCase(); // 统一转换为大写
+            let key = parts.slice(2).join(" ").toUpperCase();
 
             if (!HID.KEY[key]) {
                 console.log("Unknown key:", key);
@@ -160,13 +164,13 @@ function executeNextCommand(mode) {
 }
 
 
-// 监听按钮按键模式
-var myButton = new SWBtn(function(k) {
+// Instantiate SWButton object and initialize it with callback for press patterns
+var myButton = new SWBtn(function (k) {
     console.log("Button press pattern detected:", k);
     executeNextCommand(k);
 });
 
-// 启动加载
+// Initial load of stored commands and integrity check setup
 loadStoredCommands();
 setInterval(checkStoredCommandIntegrity, 10000);
 console.log("Puck.js is ready.");
