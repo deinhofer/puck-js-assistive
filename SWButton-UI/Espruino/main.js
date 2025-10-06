@@ -6,9 +6,10 @@
 // Load necessary modules
 // ble_hid_combo provides combined keyboard and mouse HID functionality
 var HID = require("ble_hid_combo");
+
 // SWButton.js is a custom javascript module and handles button press patterns (single, double, long press).
-// SWButton.js must be stored in the device's storage with the name 'SWButton.js' using the Espruino IDE.
-var SWBtn = eval(require("Storage").read("SWButton.js"));
+// SWButton.js must be stored in the device's storage with the name 'SWButton' using the Espruino IDE.
+var SWBtn = require("SWButton");
 
 var storeCommands = { "S": "", "SS": "", "L": "" };
 
@@ -122,6 +123,15 @@ NRF.on('connect', function (addr) {
     NRF.setSecurity({ mitm: false, display: false, keyboard: false });
 });
 
+// Move mouse action with error handling
+function moveMouseAction(x, y, b) {
+    try {
+        HID.moveMouse(x, y, b);
+    } catch (err) {
+        console.log("Cannot send mouse function, connected as HID device? Reason: " + err.message);
+    }
+}
+
 // Execute the command associated with the button press pattern
 function executeNextCommand(mode) {
     var command = storeCommands[mode];
@@ -135,37 +145,41 @@ function executeNextCommand(mode) {
 
     let parts = command.split(" ");
     if (parts[0] === "AT") {
-        if (parts[1] === "KP") {
-            let key = parts.slice(2).join(" ").toUpperCase();
+        try {
+            if (parts[1] === "KP") {
+                let key = parts.slice(2).join(" ").toUpperCase();
 
-            if (!HID.KEY[key]) {
-                console.log("Unknown key:", key);
-                return;
-            }
+                if (!HID.KEY[key]) {
+                    console.log("Unknown key:", key);
+                    return;
+                }
 
-            try {
-                HID.tapKey(HID.KEY[key]);
-                console.log("Key pressed:", key);
-            } catch (e) {
-                console.log("Error pressing key:", e);
+                try {
+                    HID.tapKey(HID.KEY[key]);
+                    console.log("Key pressed:", key);
+                } catch (e) {
+                    console.log("Error pressing key:", e);
+                }
+            } else if (parts[1] === "CL") {
+                HID.clickButton(HID.BUTTON.LEFT);
+            } else if (parts[1] === "CR") {
+                HID.clickButton(HID.BUTTON.RIGHT);
+            } else if (parts[1] === "CM") {
+                HID.clickButton(HID.BUTTON.MIDDLE);
+            } else if (parts[1] === "CD") {
+                HID.clickButton(HID.BUTTON.LEFT);
+                setTimeout(() => HID.clickButton(HID.BUTTON.LEFT), 100);
+            } else if (parts[1] === "WU") {
+                HID.scroll(1);
+            } else if (parts[1] === "WD") {
+                HID.scroll(-1);
+            } else if (parts[1] === "DRAG") {
+                moveMouseAction(10, 10, 0);
+            } else {
+                console.log("Unknown AT command:", command);
             }
-        } else if (parts[1] === "CL") {
-            HID.mouseClick(1);
-        } else if (parts[1] === "CR") {
-            HID.mouseClick(2);
-        } else if (parts[1] === "CM") {
-            HID.mouseClick(4);
-        } else if (parts[1] === "CD") {
-            HID.mouseClick(1);
-            setTimeout(() => HID.mouseClick(1), 100);
-        } else if (parts[1] === "WU") {
-            HID.mouseWheel(1);
-        } else if (parts[1] === "WD") {
-            HID.mouseWheel(-1);
-        } else if (parts[1] === "DRAG") {
-            HID.mouseMove(10, 10, 0);
-        } else {
-            console.log("Unknown AT command:", command);
+        } catch (err) {
+            console.log("Cannot send HID function, connected as HID device? Reason: " + err.message);
         }
     } else {
         console.log("Invalid command format:", command);
@@ -182,4 +196,54 @@ var myButton = new SWBtn(function (k) {
 // Initial load of stored commands and integrity check setup
 loadStoredCommands();
 setInterval(checkStoredCommandIntegrity, 10000);
+
+// Accelerometer (tilt) handling
+//require("puckjsv2-accel-tilt").on();
+// turn off with require("puckjsv2-accel-tilt").off();
+
+// Function to handle accelerometer (tilt) events
+function onAccel(a) {
+    let x = 0, y = 0;
+    const sensitivity = 3000; // Adjust sensitivity as needed (lower value = higher sensitivity)
+    const speed = 10; // Adjust speed for faster movement
+
+    console.log("x=" + a.acc.x);
+    console.log("y=" + a.acc.y);
+
+    // Use accelerometer data to control mouse movement
+    if (a.acc.y > sensitivity) {
+        LED2.set();
+        y = speed;
+        moveMouseAction(x, y, 0);
+    }
+    else if (a.acc.y < -sensitivity) {
+        LED2.set();
+        y = -speed;
+        moveMouseAction(x, y, 0);
+    }
+    if (a.acc.x > sensitivity) {
+        LED1.set();
+        x = -speed;
+        moveMouseAction(x, y, 0);
+    }
+    else if (a.acc.x < -sensitivity) {
+        LED1.set();
+        x = speed;
+        moveMouseAction(x, y, 0);
+    }
+
+    LED1.reset();
+    LED2.reset();
+    LED3.reset();
+}
+
+// Enable accelerometer with default frequency (26Hz)
+Puck.accelOn(26);
+
+// Listen for accelerometer data
+Puck.on('accel', onAccel);
+
+// Optional: Turn off the accelerometer when not needed
+// Puck.accelOff();
+
 console.log("Puck.js is ready.");
