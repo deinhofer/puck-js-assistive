@@ -249,6 +249,8 @@ NRF.on('connect', function (addr) {
     // Enable accelerometer with default frequency (26Hz) only when connected
     digitalPulse(LED1, 1, 500);
     Puck.accelOn(26);
+    // Listen for accelerometer data
+    //Puck.on('accel', onAccel);
 });
 
 // Handle BLE disconnection events
@@ -259,4 +261,9 @@ NRF.on('disconnect', function (reason) {
     Puck.accelOff();
 });
 
+// Enable accelerometer with default frequency (26Hz) only when connected
+digitalPulse(LED3, 1, 500);
+Puck.accelOn(26);
+// Listen for accelerometer data
+Puck.on('accel', onAccel);
 console.log("Puck.js is ready.");
