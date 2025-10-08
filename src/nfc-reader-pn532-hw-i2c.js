@@ -26,9 +26,6 @@ NRF.setAdvertising([
   ]
 ]);
 
-LED1.reset();
-LED2.reset();
-
 //init current tag state
 var tagData={
   "grid-url" : "https://grid.asterics.eu",
@@ -37,6 +34,55 @@ var tagData={
   "image-url": "url to image"            ,
   "cell-id"  : "id of cell (optional)"
 };
+
+function sendShortCut(k1, k2) {
+  try {
+    kb.tap(k1, 0, function() {
+      kb.tap(k2, 0);
+    });
+  }catch(err) {
+      Bluetooth.println(err);
+  }
+}
+
+function card1() {
+  LED2.set();
+  setTimeout('LED2.reset();', 1000);
+  
+  sendShortCut(kb.KEY['3'],kb.KEY['3']);
+
+  tagData["label"]="Loewe";
+  tagData["long-text"]="Das ist ein Loewe.";
+  tagData["cell-id"]="card1";
+  tagData["image-url"]="https://i.ebayimg.com/images/g/jUQAAOSwUllkcJ0J/s-l1600.png";
+  Bluetooth.println(JSON.stringify(tagData));
+}
+
+function card2() {
+  LED2.set();
+  setTimeout('LED2.reset();', 1000);
+
+  sendShortCut(kb.KEY['3'],kb.KEY['4']);
+
+  tagData["label"]="Wolf";
+  tagData["long-text"]="Das ist ein Wolf.";
+  tagData["cell-id"]="card2";
+  tagData["image-url"]="https://i.ebayimg.com/images/g/IdMAAOSwmPRk2M-D/s-l1600.png";
+  Bluetooth.println(JSON.stringify(tagData));
+}
+
+function card3() {
+  LED2.set();
+  setTimeout('LED2.reset();', 1000);
+
+  sendShortCut(kb.KEY['2'],kb.KEY['3']);
+
+  tagData["label"]="Katze";
+  tagData["long-text"]="Das ist ein Katze.";
+  tagData["cell-id"]="card3";
+  tagData["image-url"]="https://i.ebayimg.com/images/g/g-0AAOSwAOJkpXN3/s-l1600.png";
+  Bluetooth.println(JSON.stringify(tagData));
+}
 
 setInterval(function() {
  nfc.findCards(function(card) {
@@ -51,43 +97,6 @@ setInterval(function() {
   });
 }, 1000);
 
-function card1() {
-  LED2.set();
-  setTimeout('LED2.reset();', 1000);
-  /*kb.tap(kb.KEY['3'], 0, function() {
-    kb.tap(kb.KEY['3'], 0);
-  });*/
-  tagData["label"]="Loewe";
-  tagData["long-text"]="Das ist ein Loewe.";
-  tagData["cell-id"]="card1";
-  tagData["image-url"]="https://i.ebayimg.com/images/g/jUQAAOSwUllkcJ0J/s-l1600.png";
-  Bluetooth.println(JSON.stringify(tagData));
-}
-
-function card2() {
-  LED2.set();
-  setTimeout('LED2.reset();', 1000);
-  /*
-  kb.tap(kb.KEY['3'], 0, function() {
-    kb.tap(kb.KEY['4'], 0);
-  }); */
-  tagData["label"]="Wolf";
-  tagData["long-text"]="Das ist ein Wolf.";
-  tagData["cell-id"]="card2";
-  tagData["image-url"]="https://i.ebayimg.com/images/g/IdMAAOSwmPRk2M-D/s-l1600.png";
-  Bluetooth.println(JSON.stringify(tagData));
-}
-
-function card3() {
-  LED2.set();
-  setTimeout('LED2.reset();', 1000);
-  /*
-  kb.tap(kb.KEY['2'], 0, function() {
-    kb.tap(kb.KEY['3'], 0);
-  });*/
-  tagData["label"]="Katze";
-  tagData["long-text"]="Das ist ein Katze.";
-  tagData["cell-id"]="card3";
-  tagData["image-url"]="https://i.ebayimg.com/images/g/g-0AAOSwAOJkpXN3/s-l1600.png";
-  Bluetooth.println(JSON.stringify(tagData));
-}
+digitalPulse(LED1,1,500);
+LED1.reset();
+LED2.reset();
