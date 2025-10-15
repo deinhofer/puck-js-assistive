@@ -200,14 +200,10 @@ var myButton = new SWBtn(function (k) {
 loadStoredCommands();
 setInterval(checkStoredCommandIntegrity, 10000);
 
-// Accelerometer (tilt) handling
-//require("puckjsv2-accel-tilt").on();
-// turn off with require("puckjsv2-accel-tilt").off();
-
 // Function to handle accelerometer (tilt) events
 function onAccel(a) {
     let x = 0, y = 0;
-    const sensitivity = 3000; // Adjust sensitivity as needed (lower value = higher sensitivity)
+    const sensitivity = 1500; // Adjust sensitivity as needed (lower value = higher sensitivity)
     const speed = 10; // Adjust speed for faster movement
 
     console.log("x=" + a.acc.x);
@@ -234,6 +230,9 @@ function onAccel(a) {
         x = speed;
         moveMouseAction(x, y, 0);
     }
+    //if(x>0 || y>0) {
+      
+    //}
 
     LED1.reset();
     LED2.reset();
@@ -263,7 +262,15 @@ NRF.on('disconnect', function (reason) {
 
 // Enable accelerometer with default frequency (26Hz) only when connected
 digitalPulse(LED3, 1, 500);
-Puck.accelOn(26);
+
+// Accelerometer (tilt) handling
+//require("puckjsv2-accel-tilt").on();
+// turn off with require("puckjsv2-accel-tilt").off();
+
+Puck.accelOn(12.5);
+
+
+
 // Listen for accelerometer data
 Puck.on('accel', onAccel);
 console.log("Puck.js is ready.");
