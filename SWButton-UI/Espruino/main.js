@@ -216,7 +216,7 @@ loadStoredCommands();
 setInterval(checkStoredCommandIntegrity, 10000);
 
 // Function to handle accelerometer (tilt) events
-function onAccel(a) {
+function updateMouseMovement(a) {
     let x = 0, y = 0;
     const sensitivity = 1500; // Adjust sensitivity as needed (lower value = higher sensitivity)
     const speed = 10; // Adjust speed for faster movement
@@ -250,7 +250,129 @@ function onAccel(a) {
     LED3.reset();
 }
 
-hz=26;
+function updateMouseMovementDegree(a) {
+    let x = 0, y = 0;
+    const sensitivity = 30; // Adjust sensitivity as needed (lower value = higher sensitivity)
+    const speed = 1; // Adjust speed for faster movement
+    const max_speed=25;
+    var speed_roll=Math.abs(a.roll)-sensitivity; 
+    var speed_pitch=Math.abs(a.pitch)-sensitivity;
+
+    speed_roll = speed_roll > max_speed ? max_speed : speed_roll;
+    speed_pitch = speed_pitch > max_speed ? max_speed : speed_pitch;
+  
+    // Use accelerometer data to control mouse movement
+    if (a.roll > sensitivity) {
+        LED2.set();
+        y = speed_roll;
+    }
+    else if (a.roll < -sensitivity) {
+        LED2.set();
+        y = -speed_roll;
+    }
+    if (a.pitch > sensitivity) {
+        LED1.set();
+        x = speed_pitch;
+    }
+    else if (a.pitch < -sensitivity) {
+        LED1.set();
+        x = -speed_pitch;
+    }
+    if(x!=0 || y!=0) {
+      moveMouseAction(x, y, 0);
+    }
+
+    LED1.reset();
+    LED2.reset();
+    LED3.reset();
+}
+
+
+// AHRS.js - AHRS-Modul für Puck.js OHNE Magnetometer
+// Berechnet Roll, Pitch und relativen Yaw aus Beschleunigung und Gyroskop
+// Nutze: var AHRS = require("AHRS");
+
+var AHRS = (function() {
+  // Private Variablen
+  var roll = 0, pitch = 0, yaw = 0;
+  var lastTime = 0;
+  var sampleRate = 12.5; // Hz
+
+  // Sensor-Offsets (können kalibriert werden)
+  var accelOffset = {x:0, y:0, z:0};
+  var gyroOffset = {x:0, y:0, z:0};
+
+  // Initialisierung
+  function init() {
+    // Sensoren aktivieren
+    Puck.accelOn(sampleRate);
+
+    // Sensor-Daten abonnieren
+    Puck.on('accel', function(accel) {
+      update(accel);
+    });
+
+    lastTime = getTime();
+  }
+
+  // Sensor-Daten aktualisieren
+  function update(acc) {
+    var now = getTime();
+    var dt = (now - lastTime) / 1000;
+    lastTime = now;
+
+    accel= acc["acc"];
+    gyro = acc["gyro"];
+
+    if (accel) {
+      // Beschleunigungswerte korrigieren
+      accel.x -= accelOffset.x;
+      accel.y -= accelOffset.y;
+      accel.z -= accelOffset.z;
+
+      // Roll & Pitch aus Beschleunigung (einfach)
+      roll = Math.atan2(accel.y, accel.z);
+      pitch = Math.atan2(-accel.x, Math.sqrt(accel.y*accel.y + accel.z*accel.z));
+    }
+
+    if (gyro) {
+      // Gyro-Drift-Kompensation (einfach)
+      gyro.x -= gyroOffset.x;
+      gyro.y -= gyroOffset.y;
+      gyro.z -= gyroOffset.z;
+
+      // Roll, Pitch und Yaw mit Gyro-Daten aktualisieren
+      roll += gyro.x * dt;
+      pitch += gyro.y * dt;
+      yaw += gyro.z * dt;
+    }
+  }
+
+  // Aktuelle Orientierung zurückgeben (in Radiant)
+  function getOrientation() {
+    return {
+      roll: roll,
+      pitch: pitch,
+      yaw: yaw // Relativer Yaw (kann driften!)
+    };
+  }
+
+ // Aktuelle Orientierung in Grad zurückgeben
+  function getOrientationDegree() {
+    return {
+      roll: (roll * 180 / Math.PI),
+      pitch: (pitch * 180 / Math.PI),
+      yaw: (yaw * 180 / Math.PI) // Relativer Yaw in Grad
+    };
+  }
+
+  // Öffentliche API
+  return {
+    init: init,
+    getOrientation: getOrientation,
+    getOrientationDegree: getOrientationDegree,
+  };
+})();
 
 // Handle BLE connection events
 NRF.on('connect', function (addr) {
@@ -260,7 +382,9 @@ NRF.on('connect', function (addr) {
 
     // Enable accelerometer with default frequency (26Hz) only when connected
     digitalPulse(LED1, 1, 500);
-    Puck.accelOn(hz);
+    AHRS.init();
+  
+    //Puck.accelOn(hz);
     // Listen for accelerometer data
     //Puck.on('accel', onAccel);
 });
@@ -280,10 +404,22 @@ digitalPulse(LED3, 1, 500);
 //require("puckjsv2-accel-tilt").on();
 // turn off with require("puckjsv2-accel-tilt").off();
 
-Puck.accelOn(hz);
+//Puck.accelOn(hz);
 
-
+//Start AHRS algorithm
+AHRS.init();
 
 // Listen for accelerometer data
-Puck.on('accel', onAccel);
+//Puck.on('accel', updateMouseMovement);
+
+interval=setInterval(function() {
+  var orientation = AHRS.getOrientationDegree();
+  console.log(
+    "Roll:", orientation.roll.toFixed(2),
+    "Pitch:", orientation.pitch.toFixed(2),
+    "Yaw:", orientation.yaw.toFixed(2)
+  );
+  updateMouseMovementDegree(orientation);
+}, 50);
+
 console.log("Puck.js is ready.");
