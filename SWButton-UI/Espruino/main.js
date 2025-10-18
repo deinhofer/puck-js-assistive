@@ -7,6 +7,9 @@
 // ble_hid_combo provides combined keyboard and mouse HID functionality
 var HID = require("ble_hid_combo");
 
+//needed for adversting eddystone URL: URL to configuration website
+var eddystone=require("ble_eddystone");
+
 // SWButton.js is a custom javascript module and handles button press patterns (single, double, long press).
 // SWButton.js must be stored in the device's storage with the name 'SWButton' using the Espruino IDE.
 var SWBtn = require("SWButton");
@@ -125,7 +128,9 @@ NRF.setAdvertising([
 2, 1, 6,  // standard Bluetooth flags
 3,3,0x12,0x18, // HID Service
 3, 0x19, 0xc0 ,0x03 // : 0xc0 Generic HID, 0xC1 Keyboard, 0xC2 Mouse, 0xc3 Joystick
-]
+],
+  // URL to configuration website
+  [eddystone.get("https://l1nq.com/jtNjc")]
 ]);
 
 // Move mouse action with error handling
