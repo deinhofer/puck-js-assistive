@@ -118,6 +118,16 @@ NRF.setServices({
     advertise: [0xBCDE]
 });
 
+//NRF.setAdvertising must be called additionally in case we are connected to Windows 11
+NRF.setAdvertising([
+{}, // include original Advertising packet
+[   // second packet containing 'appearance'
+2, 1, 6,  // standard Bluetooth flags
+3,3,0x12,0x18, // HID Service
+3, 0x19, 0xc0 ,0x03 // : 0xc0 Generic HID, 0xC1 Keyboard, 0xC2 Mouse, 0xc3 Joystick
+]
+]);
+
 // Move mouse action with error handling
 function moveMouseAction(x, y, b) {
     try {
@@ -213,31 +223,29 @@ function onAccel(a) {
     if (a.acc.y > sensitivity) {
         LED2.set();
         y = speed;
-        moveMouseAction(x, y, 0);
     }
     else if (a.acc.y < -sensitivity) {
         LED2.set();
         y = -speed;
-        moveMouseAction(x, y, 0);
     }
     if (a.acc.x > sensitivity) {
         LED1.set();
         x = -speed;
-        moveMouseAction(x, y, 0);
     }
     else if (a.acc.x < -sensitivity) {
         LED1.set();
         x = speed;
-        moveMouseAction(x, y, 0);
     }
-    //if(x>0 || y>0) {
-      
-    //}
+    if(x!=0 || y!=0) {
+      moveMouseAction(x, y, 0);
+    }
 
     LED1.reset();
     LED2.reset();
     LED3.reset();
 }
+
+hz=26;
 
 // Handle BLE connection events
 NRF.on('connect', function (addr) {
@@ -247,7 +255,7 @@ NRF.on('connect', function (addr) {
 
     // Enable accelerometer with default frequency (26Hz) only when connected
     digitalPulse(LED1, 1, 500);
-    Puck.accelOn(26);
+    Puck.accelOn(hz);
     // Listen for accelerometer data
     //Puck.on('accel', onAccel);
 });
@@ -267,7 +275,7 @@ digitalPulse(LED3, 1, 500);
 //require("puckjsv2-accel-tilt").on();
 // turn off with require("puckjsv2-accel-tilt").off();
 
-Puck.accelOn(12.5);
+Puck.accelOn(hz);
 
 
 
