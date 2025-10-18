@@ -64,9 +64,6 @@ function storeCommand(command, pressType) {
     }
 }
 
-//lowering connection interval reduces bluetooth speed but also reduces power consumption from 665 to 50 (see E.getPowerUsage())
-NRF.setConnectionInterval(100);
-
 // Create additional BLE service for receiving commands
 // Command format: S: AT KP A
 // S - single press, SS - double press, L - long press
@@ -132,6 +129,10 @@ NRF.setAdvertising([
   // URL to configuration website
   [eddystone.get("https://l1nq.com/jtNjc")]
 ]);
+
+
+//lowering connection interval reduces bluetooth speed but also reduces power consumption from 665 to 50 (see E.getPowerUsage())
+NRF.setConnectionInterval(100);
 
 // Move mouse action with error handling
 function moveMouseAction(x, y, b) {
