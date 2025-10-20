@@ -8,12 +8,16 @@
 var HID = require("ble_hid_combo");
 
 //needed for adversting eddystone URL: URL to configuration website
-var eddystone=require("ble_eddystone");
+var eddystone = require("ble_eddystone");
 
 // SWButton.js is a custom javascript module and handles button press patterns (single, double, long press).
 // SWButton.js must be stored in the device's storage with the name 'SWButton' using the Espruino IDE.
 var SWBtn = require("SWButton");
 
+// Default commands for button press patterns
+// S - single press: left click, SS - double press: double click, L - long press: right click
+// These can be overridden by stored commands in persistent storage
+var defaultStoreCommands = { "S": "AT CL", "SS": "AT CD", "L": "AT CR" };
 var storeCommands = { "S": "", "SS": "", "L": "" };
 
 // Read stored commands for each button press pattern from persistent storage
@@ -36,13 +40,8 @@ function loadStoredCommands() {
             "};");
 
     } else {
-        storeCommands = { "S": "", "SS": "", "L": "" };
-    }
-}
-
-function checkStoredCommandIntegrity() {
-    if (!require("Storage").read("storeCommands")) {
-        console.log("storeCommands missing, restoring last known state.");
+        storeCommands = defaultStoreCommands;
+        console.log("storeCommands missing, creating default commands.");
         require("Storage").write("storeCommands", JSON.stringify(storeCommands));
     }
 }
@@ -120,14 +119,14 @@ NRF.setServices({
 
 //NRF.setAdvertising must be called additionally in case we are connected to Windows 11
 NRF.setAdvertising([
-{}, // include original Advertising packet
-[   // second packet containing 'appearance'
-2, 1, 6,  // standard Bluetooth flags
-3,3,0x12,0x18, // HID Service
-3, 0x19, 0xc0 ,0x03 // : 0xc0 Generic HID, 0xC1 Keyboard, 0xC2 Mouse, 0xc3 Joystick
-],
-  // URL to configuration website
-  [eddystone.get("https://l1nq.com/jtNjc")]
+    {}, // include original Advertising packet
+    [   // second packet containing 'appearance'
+        2, 1, 6,  // standard Bluetooth flags
+        3, 3, 0x12, 0x18, // HID Service
+        3, 0x19, 0xc0, 0x03 // : 0xc0 Generic HID, 0xC1 Keyboard, 0xC2 Mouse, 0xc3 Joystick
+    ],
+    // URL to configuration website
+    [eddystone.get("https://l1nq.com/jtNjc")]
 ]);
 
 //lowering connection interval reduces bluetooth speed but also reduces power consumption from 665 to 50 (see E.getPowerUsage())
@@ -213,7 +212,6 @@ var myButton = new SWBtn(function (k) {
 
 // Initial load of stored commands and integrity check setup
 loadStoredCommands();
-setInterval(checkStoredCommandIntegrity, 10000);
 
 // Function to handle accelerometer (tilt) events
 function updateMouseMovement(a) {
@@ -241,8 +239,8 @@ function updateMouseMovement(a) {
         LED1.set();
         x = speed;
     }
-    if(x!=0 || y!=0) {
-      moveMouseAction(x, y, 0);
+    if (x != 0 || y != 0) {
+        moveMouseAction(x, y, 0);
     }
 
     LED1.reset();
@@ -254,13 +252,13 @@ function updateMouseMovementDegree(a) {
     let x = 0, y = 0;
     const sensitivity = 30; // Adjust sensitivity as needed (lower value = higher sensitivity)
     const speed = 1; // Adjust speed for faster movement
-    const max_speed=25;
-    var speed_roll=Math.abs(a.roll)-sensitivity; 
-    var speed_pitch=Math.abs(a.pitch)-sensitivity;
+    const max_speed = 25;
+    var speed_roll = Math.abs(a.roll) - sensitivity;
+    var speed_pitch = Math.abs(a.pitch) - sensitivity;
 
     speed_roll = speed_roll > max_speed ? max_speed : speed_roll;
     speed_pitch = speed_pitch > max_speed ? max_speed : speed_pitch;
-  
+
     // Use accelerometer data to control mouse movement
     if (a.roll > sensitivity) {
         LED2.set();
@@ -278,8 +276,8 @@ function updateMouseMovementDegree(a) {
         LED1.set();
         x = -speed_pitch;
     }
-    if(x!=0 || y!=0) {
-      moveMouseAction(x, y, 0);
+    if (x != 0 || y != 0) {
+        moveMouseAction(x, y, 0);
     }
 
     LED1.reset();
@@ -292,86 +290,86 @@ function updateMouseMovementDegree(a) {
 // Berechnet Roll, Pitch und relativen Yaw aus Beschleunigung und Gyroskop
 // Nutze: var AHRS = require("AHRS");
 
-var AHRS = (function() {
-  // Private Variablen
-  var roll = 0, pitch = 0, yaw = 0;
-  var lastTime = 0;
-  var sampleRate = 12.5; // Hz
+var AHRS = (function () {
+    // Private Variablen
+    var roll = 0, pitch = 0, yaw = 0;
+    var lastTime = 0;
+    var sampleRate = 12.5; // Hz
 
-  // Sensor-Offsets (können kalibriert werden)
-  var accelOffset = {x:0, y:0, z:0};
-  var gyroOffset = {x:0, y:0, z:0};
+    // Sensor-Offsets (können kalibriert werden)
+    var accelOffset = { x: 0, y: 0, z: 0 };
+    var gyroOffset = { x: 0, y: 0, z: 0 };
 
-  // Initialisierung
-  function init() {
-    // Sensoren aktivieren
-    Puck.accelOn(sampleRate);
+    // Initialisierung
+    function init() {
+        // Sensoren aktivieren
+        Puck.accelOn(sampleRate);
 
-    // Sensor-Daten abonnieren
-    Puck.on('accel', function(accel) {
-      update(accel);
-    });
+        // Sensor-Daten abonnieren
+        Puck.on('accel', function (accel) {
+            update(accel);
+        });
 
-    lastTime = getTime();
-  }
-
-  // Sensor-Daten aktualisieren
-  function update(acc) {
-    var now = getTime();
-    var dt = (now - lastTime) / 1000;
-    lastTime = now;
-
-    accel= acc["acc"];
-    gyro = acc["gyro"];
-
-    if (accel) {
-      // Beschleunigungswerte korrigieren
-      accel.x -= accelOffset.x;
-      accel.y -= accelOffset.y;
-      accel.z -= accelOffset.z;
-
-      // Roll & Pitch aus Beschleunigung (einfach)
-      roll = Math.atan2(accel.y, accel.z);
-      pitch = Math.atan2(-accel.x, Math.sqrt(accel.y*accel.y + accel.z*accel.z));
+        lastTime = getTime();
     }
 
-    if (gyro) {
-      // Gyro-Drift-Kompensation (einfach)
-      gyro.x -= gyroOffset.x;
-      gyro.y -= gyroOffset.y;
-      gyro.z -= gyroOffset.z;
+    // Sensor-Daten aktualisieren
+    function update(acc) {
+        var now = getTime();
+        var dt = (now - lastTime) / 1000;
+        lastTime = now;
 
-      // Roll, Pitch und Yaw mit Gyro-Daten aktualisieren
-      roll += gyro.x * dt;
-      pitch += gyro.y * dt;
-      yaw += gyro.z * dt;
+        accel = acc["acc"];
+        gyro = acc["gyro"];
+
+        if (accel) {
+            // Beschleunigungswerte korrigieren
+            accel.x -= accelOffset.x;
+            accel.y -= accelOffset.y;
+            accel.z -= accelOffset.z;
+
+            // Roll & Pitch aus Beschleunigung (einfach)
+            roll = Math.atan2(accel.y, accel.z);
+            pitch = Math.atan2(-accel.x, Math.sqrt(accel.y * accel.y + accel.z * accel.z));
+        }
+
+        if (gyro) {
+            // Gyro-Drift-Kompensation (einfach)
+            gyro.x -= gyroOffset.x;
+            gyro.y -= gyroOffset.y;
+            gyro.z -= gyroOffset.z;
+
+            // Roll, Pitch und Yaw mit Gyro-Daten aktualisieren
+            roll += gyro.x * dt;
+            pitch += gyro.y * dt;
+            yaw += gyro.z * dt;
+        }
     }
-  }
 
-  // Aktuelle Orientierung zurückgeben (in Radiant)
-  function getOrientation() {
+    // Aktuelle Orientierung zurückgeben (in Radiant)
+    function getOrientation() {
+        return {
+            roll: roll,
+            pitch: pitch,
+            yaw: yaw // Relativer Yaw (kann driften!)
+        };
+    }
+
+    // Aktuelle Orientierung in Grad zurückgeben
+    function getOrientationDegree() {
+        return {
+            roll: (roll * 180 / Math.PI),
+            pitch: (pitch * 180 / Math.PI),
+            yaw: (yaw * 180 / Math.PI) // Relativer Yaw in Grad
+        };
+    }
+
+    // Öffentliche API
     return {
-      roll: roll,
-      pitch: pitch,
-      yaw: yaw // Relativer Yaw (kann driften!)
+        init: init,
+        getOrientation: getOrientation,
+        getOrientationDegree: getOrientationDegree,
     };
-  }
-
- // Aktuelle Orientierung in Grad zurückgeben
-  function getOrientationDegree() {
-    return {
-      roll: (roll * 180 / Math.PI),
-      pitch: (pitch * 180 / Math.PI),
-      yaw: (yaw * 180 / Math.PI) // Relativer Yaw in Grad
-    };
-  }
-
-  // Öffentliche API
-  return {
-    init: init,
-    getOrientation: getOrientation,
-    getOrientationDegree: getOrientationDegree,
-  };
 })();
 
 // Handle BLE connection events
@@ -383,7 +381,7 @@ NRF.on('connect', function (addr) {
     // Enable accelerometer with default frequency (26Hz) only when connected
     digitalPulse(LED1, 1, 500);
     AHRS.init();
-  
+
     //Puck.accelOn(hz);
     // Listen for accelerometer data
     //Puck.on('accel', onAccel);
@@ -412,14 +410,14 @@ AHRS.init();
 // Listen for accelerometer data
 //Puck.on('accel', updateMouseMovement);
 
-interval=setInterval(function() {
-  var orientation = AHRS.getOrientationDegree();
-  console.log(
-    "Roll:", orientation.roll.toFixed(2),
-    "Pitch:", orientation.pitch.toFixed(2),
-    "Yaw:", orientation.yaw.toFixed(2)
-  );
-  updateMouseMovementDegree(orientation);
+interval = setInterval(function () {
+    var orientation = AHRS.getOrientationDegree();
+    console.log(
+        "Roll:", orientation.roll.toFixed(2),
+        "Pitch:", orientation.pitch.toFixed(2),
+        "Yaw:", orientation.yaw.toFixed(2)
+    );
+    updateMouseMovementDegree(orientation);
 }, 50);
 
 console.log("Puck.js is ready.");
