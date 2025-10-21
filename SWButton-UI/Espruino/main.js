@@ -26,13 +26,6 @@ function loadStoredCommands() {
     if (stored) {
         storeCommands = JSON.parse(stored);
 
-        Object.keys(storeCommands).forEach(key => {
-            if (Array.isArray(storeCommands[key])) {
-                storeCommands[key] = storeCommands[key][0];
-            }
-            storeCommands[key] = String(storeCommands[key]).trim();
-        });
-
         console.log("storeCommands = {\n" +
             `    "S": "${storeCommands.S}",\n` +
             `    "SS": "${storeCommands.SS}",\n` +
@@ -40,9 +33,9 @@ function loadStoredCommands() {
             "};");
 
     } else {
-        storeCommands = defaultStoreCommands;
         console.log("storeCommands missing, creating default commands.");
-        require("Storage").write("storeCommands", JSON.stringify(storeCommands));
+        require("Storage").write("storeCommands", JSON.stringify(defaultStoreCommands));
+        loadStoredCommands();
     }
 }
 
