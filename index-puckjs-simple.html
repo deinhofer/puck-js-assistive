@@ -106,7 +106,8 @@ async function initMain() {
   try{
     resetPuck();
     //load and send init code
-    code=await loadFile("assistive-button/src/main.puck.js");
+    //code=await loadFile("assistive-button/src/main.puck.js");
+    code=await loadFile("assistive-button/src/main.puck-hold-kbd-mouse.js");
     console.log("Sending init code:\n"+code);
     await sendBluetooth(code);
     console.log("Puck initialized successfully");
@@ -211,11 +212,13 @@ disconntected
       <li><button onclick="initMain()">Init main code</button></li>
     </ol>
   </li>
+  <!--
 	<li>Now select button function:</li>
        <button onclick="changeHIDKey(0,44)">Mouse: Left Click</button>
        <button onclick="changeHIDKey(1,44)">Key: SPACE</button>
+       -->
        <!--<button onclick="changeHIDKey(1,4)">Key: a</button>-->
-    <li>The puck-js is finally configured, when the <strong>green LED turns on and off again.</strong></li>
+  <li>The puck-js is finally configured, when the <strong>green LED turns on and off again.</strong></li>
 	<li><button onclick="disconnectBluetooth()">Disconnect Bluetooth connection</button></li>
 	<li>Open the list of paired Bluetooth devices on your computer and pair the device.</li>
 	<li>It should now come up as keyboard or mouse or both.</li>
