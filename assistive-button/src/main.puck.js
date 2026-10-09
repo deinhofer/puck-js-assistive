@@ -12,16 +12,16 @@ var int = require("hid_");
 NRF.setConnectionInterval(100);
 
 // Configure the puck.js as a Bluetooth HID device
-NRF.setServices(undefined, { hid : int.report });
+NRF.setServices(undefined, { hid: int.report });
 
 //NRF.setAdvertising must be called additionally in case we are connected to Windows 11
 NRF.setAdvertising([
-{}, // include original Advertising packet
-[   // second packet containing 'appearance'
-2, 1, 6,  // standard Bluetooth flags
-3,3,0x12,0x18, // HID Service
-3, 0x19, 0xc0 ,0x03 // : 0xc0 Generic HID, 0xC1 Keyboard, 0xC2 Mouse, 0xc3 Joystick
-]
+  {}, // include original Advertising packet
+  [   // second packet containing 'appearance'
+    2, 1, 6,  // standard Bluetooth flags
+    3, 3, 0x12, 0x18, // HID Service
+    3, 0x19, 0xc0, 0x03 // : 0xc0 Generic HID, 0xC1 Keyboard, 0xC2 Mouse, 0xc3 Joystick
+  ]
 ]);
 
 /**/
@@ -30,13 +30,13 @@ NRF.setAdvertising([
 /* @param {number} [mBtn] - The mouse button to click. Use definitions of the ble_hid_combo module.*/
 /**/
 function mouseClickAction(btnSequence, mBtn) {
-  print("Button pressed: "+btnSequence);
+  print("Button pressed: " + btnSequence);
   LED1.set();
 
-  try{
+  try {
     int.clickButton(mBtn);
-  } catch(err) {
-    console.log("Cannot send mouse function, connected as HID device? Reason: "+err.message);
+  } catch (err) {
+    console.log("Cannot send mouse function, connected as HID device? Reason: " + err.message);
   }
   LED1.reset();
 }
@@ -48,13 +48,13 @@ function mouseClickAction(btnSequence, mBtn) {
 /* @param {number} [dy] - The relative mouse movement in y direction.*/
 /**/
 function mouseMoveAction(btnSequence, dx, dy) {
-  print("Button pressed: "+btnSequence);
+  print("Button pressed: " + btnSequence);
   LED2.set();
 
-  try{
+  try {
     int.moveMouse(dx, dy);
-  } catch(err) {
-    console.log("Cannot send mouse function, connected as HID device? Reason: "+err.message);
+  } catch (err) {
+    console.log("Cannot send mouse function, connected as HID device? Reason: " + err.message);
   }
   LED2.reset();
 }
@@ -65,13 +65,13 @@ function mouseMoveAction(btnSequence, dx, dy) {
 /* @param {number} [keyCode] - The keycode to tap.*/
 /**/
 function tapKeyAction(btnSequence, keyCode) {
-  print("Button pressed: "+btnSequence);
+  print("Button pressed: " + btnSequence);
   LED3.set();
 
-  try{
+  try {
     int.tapKey(keyCode);
-  }catch (err) {
-    console.log("Cannot send keyboard function, connected as HID device? Reason: "+err.message);
+  } catch (err) {
+    console.log("Cannot send keyboard function, connected as HID device? Reason: " + err.message);
   }
   LED3.reset();
 }
@@ -79,20 +79,20 @@ function tapKeyAction(btnSequence, keyCode) {
 /**/
 /* Resets / Releases all mouse, keyboard events.*/
 /**/
-function btnReleased(){
+function btnReleased() {
   print("Button released");
   LED3.reset();
 
-  try{
+  try {
     int.releaseButton(int.BUTTON.ALL);
-  }catch(err) {
-    console.log("Cannot send mouse function, connected as HID device? Reason: "+err.message);
+  } catch (err) {
+    console.log("Cannot send mouse function, connected as HID device? Reason: " + err.message);
   }
 
   try {
     int.keyUp(int.KEY.ALL);
-  }catch (err) {
-    console.log("Cannot send keyboard function, connected as HID device? Reason: "+err.message);
+  } catch (err) {
+    console.log("Cannot send keyboard function, connected as HID device? Reason: " + err.message);
   }
 }
 
@@ -101,14 +101,15 @@ var SWBtn = require("SWButton");
 
 //Instantiate SWBtn object, which handles button press sequence detection and add
 //callback handler, which dispatches the sequence pattern and executes the associated action.
-var mySWBtn = new SWBtn(function(k){
+var mySWBtn = new SWBtn(function (k) {
   console.log("BTN1 detected " + k); // log detected button press sequence ...
   if (functions[k]) { functions[k](); }; // ...dispatch if defined
-},BTN1,false);
+}, BTN1, false);
 
 //Configure timings for button press detection
 //Note: The B: must already start in the first line, otherwise there is a syntax error.
-SWBtn.prototype.C = { B: 20,  // B - integer - debounce [ms]
+SWBtn.prototype.C = {
+  B: 20,  // B - integer - debounce [ms]
   L: 1,   // L - float   - min Long press [s]
   P: 150, // P - integer - min Pause [ms]
   D: 0   // D - integer - delay of fnc function invocation [ms]
@@ -120,9 +121,10 @@ SWBtn.prototype.C = { B: 20,  // B - integer - debounce [ms]
 //L: Long press
 //SL: Short - Long press,...
 
-var functions = { S:   function(){ mouseClickAction("S",int.BUTTON.LEFT,1); },
- SS:  function(){ mouseMoveAction("SS",5,10); },
- L:  function(){ tapKeyAction("L",44) }
+var functions = {
+  S: function () { mouseClickAction("S", int.BUTTON.LEFT, 1); },
+  SS: function () { mouseMoveAction("SS", 5, 10); },
+  L: function () { tapKeyAction("L", 44) }
 };
 
 //Reset all LEDs just in case and to save energy.
