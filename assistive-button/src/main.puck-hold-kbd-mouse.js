@@ -28,21 +28,34 @@ NRF.setAdvertising([
 
 // END ----- Init BLE HID -----
 
-let modeIndex = 1;
+let modeIndex = 0;
 const modeValue = [int.BUTTON.LEFT, 44, 40];
 let changeMode = 0;
 const modePulsePattern = [[200], [200, 200, 200], [200, 200, 200, 200, 200]]; // pattern for LED3 pulse when changing mode
 
-//Puck.accelOn(); // default is 12.5Hz, with gyro
-Puck.accelOn(1.6); //for 1.6Hz low power, without gyro
-Puck.on('accel', function (a) {
-  //console.log(a);
-  if (a.acc.z < -3000) {
-    changeMode = 1;
-  } else {
-    changeMode = 0;
-  }
-});
+// Initialize accelerometer and set up event listener for mode change
+function initChangeMode() {
+  //Puck.accelOn(); // default is 12.5Hz, with gyro
+  Puck.accelOn(1.6); //for 1.6Hz low power, without gyro
+  Puck.on('accel', function (a) {
+    //console.log(a);
+    if (a.acc.z < -3000) {
+      changeMode = 1;
+      LED3.set();
+    } else {
+      changeMode = 0;
+      LED3.reset();
+    }
+  });
+}
+
+// Deinitialize accelerometer and remove event listener for mode change
+function deinitChangeMode() {
+  Puck.accelOff();
+  Puck.removeAllListeners('accel');
+  changeMode = 0;
+  LED3.reset();
+}
 
 function btnPressed() {
   if (changeMode == 0) {
@@ -87,6 +100,7 @@ NRF.on('connect', function (addr) {
   console.log("Connected to:", addr);
   // Enable accelerometer with default frequency (26Hz) only when connected
   digitalPulse(LED2, 1, 500);
+  initChangeMode();
 });
 
 // Handle BLE disconnection events
@@ -94,6 +108,8 @@ NRF.on('disconnect', function (reason) {
   console.log("Disconnected, reason:", reason);
   // Turn off accelerometer to save power when not connected
   digitalPulse(LED1, 1, 500);
+  deinitChangeMode();
+
   NRF.setConnectionInterval(500);
 });
 
